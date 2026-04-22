@@ -1,0 +1,855 @@
+﻿/* ================================================
+   FYC Calzado — Sistema de estilos corporativo
+   Paleta: Terracota / Café / Crema
+   Versión limpia y sin conflictos
+================================================ */
+
+:root {
+  --primary:   #B8927F;
+  --primary-dark: #8A2F1F;
+  --secondary: #A68070;
+  --accent:    #D4A399;
+  --bg:        #F5F0EB;
+  --sidebar-bg: #F7F5F3;
+  --white:     #FFFFFF;
+  --text:      #3D3A38;
+  --text-muted: #8F8A86;
+  --border:    #D8D2CC;
+  --border-light: #EEEAE6;
+  --shadow:    0 2px 8px rgba(0,0,0,0.06);
+  --radius:    8px;
+  --radius-lg: 12px;
+}
+
+/* ════════════════════════════════════════════════
+   1. BASE — Fondo y tipografía
+════════════════════════════════════════════════ */
+
+body, .stApp, .main, .block-container {
+  background-color: var(--bg) !important;
+  font-family: "Segoe UI", system-ui, sans-serif !important;
+  color: var(--text) !important;
+}
+
+[data-testid="stMain"] {
+  padding-top: 2.8rem !important;
+}
+
+/* ════════════════════════════════════════════════
+   2. HEADER NATIVO DE STREAMLIT
+════════════════════════════════════════════════ */
+
+header[data-testid="stHeader"] {
+  background: linear-gradient(90deg, #C5A399, #B8927F) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+  z-index: 100 !important;
+}
+
+/* ════════════════════════════════════════════════
+   3. SIDEBAR — Diseño limpio y profesional
+════════════════════════════════════════════════ */
+
+[data-testid="stSidebar"] {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--border-light) !important;
+  box-shadow: 2px 0 12px rgba(0,0,0,0.06) !important;
+}
+
+[data-testid="stSidebar"] > div {
+  padding: 0 !important;
+}
+
+[data-testid="stSidebarContent"] {
+  padding: 20px 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+/* ── 3a. Texto general del sidebar ── */
+[data-testid="stSidebar"] *:not(button):not(input):not([data-baseweb="tag"]):not(.brand-title):not(.brand-subtitle) {
+  color: var(--text) !important;
+}
+
+/* Zona de marca — forzar texto blanco sobre gradiente oscuro */
+[data-testid="stSidebar"] .brand-title {
+  color: #FFFFFF !important;
+}
+
+[data-testid="stSidebar"] .brand-subtitle {
+  color: rgba(255,255,255,0.7) !important;
+}
+
+/* ── 3b. Encabezados de sección ── */
+[data-testid="stSidebar"] h3 {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.4px !important;
+  color: #FFFFFF !important;
+  margin: 20px 0 10px 0 !important;
+  padding-bottom: 6px !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+[data-testid="stSidebar"] h3:first-of-type {
+  margin-top: 8px !important;
+}
+
+/* ── 3c. Separadores ── */
+[data-testid="stSidebar"] hr {
+  border: none !important;
+  height: 1px !important;
+  background: var(--border-light) !important;
+  margin: 18px 0 !important;
+}
+
+/* ── 3d. Caption / textos secundarios ── */
+[data-testid="stSidebar"] .stCaption,
+[data-testid="stSidebar"] small,
+[data-testid="stSidebar"] p small {
+  color: var(--text-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+}
+
+/* ── 3e. Zona de marca — estilos base ── */
+[data-testid="stSidebar"] .sidebar-brand {
+  position: relative !important;
+  z-index: 10 !important;
+  margin: 0 0 24px 0 !important;
+  padding: 28px 16px 20px !important;
+  overflow: visible !important;
+  border-radius: 0 !important;
+}
+
+[data-testid="stSidebar"] .brand-title,
+[data-testid="stSidebar"] .brand-subtitle {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ── 3f. Imagen del isotipo (el margen lo gestiona la zona de marca) ── */
+[data-testid="stSidebar"] img {
+  display: block !important;
+  margin: 0 auto !important;
+  max-width: 100% !important;
+}
+
+/* ════════════════════════════════════════════════
+   4. INPUTS DEL SIDEBAR — todos iguales
+════════════════════════════════════════════════ */
+
+/* Multiselect */
+[data-testid="stSidebar"] .stMultiSelect > div > div {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  padding: 6px 8px !important;
+  transition: border-color 0.2s !important;
+}
+
+[data-testid="stSidebar"] .stMultiSelect > div > div:hover {
+  border-color: var(--primary) !important;
+}
+
+/* Pills del multiselect */
+[data-testid="stSidebar"] [data-baseweb="tag"] {
+  background: #F3EFEC !important;
+  color: var(--text) !important;
+  border: 1px solid #E2D8CF !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  margin: 2px 2px !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="tag"]:hover {
+  background: #EBE4DF !important;
+  border-color: var(--border) !important;
+}
+
+/* Selectbox */
+[data-testid="stSidebar"] [data-baseweb="select"] > div {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+  font-size: 13px !important;
+  transition: border-color 0.2s !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="select"] > div:hover {
+  border-color: var(--primary) !important;
+}
+
+[data-testid="stSidebar"] [data-baseweb="select"] div {
+  color: var(--text) !important;
+}
+
+/* Date input — contenedor visual ([data-baseweb="input"]) */
+[data-testid="stSidebar"] .stDateInput [data-baseweb="input"],
+[data-testid="stSidebar"] [data-testid="stDateInput"] [data-baseweb="input"] {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  min-height: 36px !important;
+  padding: 0 4px !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--text) !important;
+}
+
+/* Date range input en sidebar como botón */
+[data-testid="stSidebar"] .stDateInput,
+[data-testid="stSidebar"] [data-testid="stDateInput"] {
+  background: var(--white) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+  padding: 6px 8px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--text) !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+[data-testid="stSidebar"] .stDateInput:hover,
+[data-testid="stSidebar"] [data-testid="stDateInput"]:hover {
+  border-color: var(--primary) !important;
+  box-shadow: 0 4px 12px rgba(184,146,127,0.10) !important;
+}
+
+[data-testid="stSidebar"] .stDateInput [data-baseweb="input"]:hover,
+[data-testid="stSidebar"] [data-testid="stDateInput"] [data-baseweb="input"]:hover {
+  border-color: var(--primary) !important;
+}
+
+[data-testid="stSidebar"] .stDateInput [data-baseweb="input"]:focus-within,
+[data-testid="stSidebar"] [data-testid="stDateInput"] [data-baseweb="input"]:focus-within {
+  border-color: var(--primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(184,146,127,0.25) !important;
+}
+
+/* Input nativo dentro — sin borde propio, hereda del contenedor */
+[data-testid="stSidebar"] .stDateInput input,
+[data-testid="stSidebar"] [data-testid="stDateInput"] input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--text) !important;
+  font-size: 13px !important;
+  padding: 8px 10px !important;
+  cursor: pointer !important;
+  width: 100% !important;
+}
+
+/* Contenedor externo — sin bordes duplicados */
+[data-testid="stSidebar"] .stDateInput > div > div,
+[data-testid="stSidebar"] [data-testid="stDateInput"] > div > div {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+/* Radio group */
+[data-testid="stSidebar"] .stRadio > div {
+  background: var(--white) !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: var(--radius) !important;
+  padding: 10px 12px !important;
+  gap: 2px !important;
+}
+
+[data-testid="stSidebar"] .stRadio label {
+  padding: 5px 6px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  color: var(--text) !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+  margin: 0 !important;
+}
+
+[data-testid="stSidebar"] .stRadio label:hover {
+  background: #F5F0EB !important;
+}
+
+/* File uploader */
+[data-testid="stSidebar"] [data-testid="stFileUploader"] {
+  background: var(--white) !important;
+  border: 1.5px dashed #D9CEC6 !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 14px !important;
+  text-align: center !important;
+  transition: all 0.25s !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stFileUploader"]:hover {
+  border-color: var(--primary-dark) !important;
+  box-shadow: 0 2px 8px rgba(138,47,31,0.1) !important;
+}
+
+/* Botones en el sidebar */
+[data-testid="stSidebar"] .stButton > button {
+  background: var(--white) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s !important;
+  width: 100% !important;
+  box-shadow: none !important;
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+  background: #F7F5F3 !important;
+  border-color: var(--primary) !important;
+  color: var(--text) !important;
+}
+
+[data-testid="stSidebar"] .stButton > button:active {
+  background: #F0ECEA !important;
+  transform: none !important;
+}
+
+[data-testid="stSidebar"] input:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(184,146,127,0.2) !important;
+}
+
+/* ════════════════════════════════════════════════
+   5. CONTENIDO PRINCIPAL — Títulos y KPIs
+════════════════════════════════════════════════ */
+
+h1, h2, h3 {
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+}
+
+h4, h5, h6 {
+  color: var(--secondary) !important;
+  font-weight: 600 !important;
+}
+
+.stCaption, small {
+  color: var(--text-muted) !important;
+}
+
+[data-testid="stMetric"] {
+  background: var(--white) !important;
+  border-radius: 12px !important;
+  padding: 22px 18px !important;
+  text-align: center !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04) !important;
+  border-left: 5px solid var(--primary) !important;
+  border: 1px solid rgba(184,146,127,0.15) !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+[data-testid="stMetric"]:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06) !important;
+  transform: translateY(-2px) !important;
+}
+
+[data-testid="stMetric"] label,
+[data-testid="stMetric"] [data-testid="stMetricLabel"] div {
+  color: var(--secondary) !important;
+  font-weight: 500 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+[data-testid="stMetric"] [data-testid="stMetricValue"] {
+  color: var(--primary) !important;
+  font-size: 1.9rem !important;
+  font-weight: 700 !important;
+}
+
+/* ════════════════════════════════════════════════
+   6. GRÁFICOS
+════════════════════════════════════════════════ */
+
+[data-testid="stPlotlyChart"], .stPlotlyChart {
+  background: var(--white) !important;
+  border-radius: 10px !important;
+  padding: 16px !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ════════════════════════════════════════════════
+   7. PESTAÑAS
+════════════════════════════════════════════════ */
+
+.stTabs [data-baseweb="tab-list"] {
+  background: #EDE8E3 !important;
+  border-radius: 10px 10px 0 0 !important;
+  gap: 4px !important;
+  padding: 6px 6px 0 6px !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  background: var(--white) !important;
+  color: #7A7070 !important;
+  border-radius: 8px 8px 0 0 !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  padding: 10px 20px !important;
+  font-size: 0.88rem !important;
+  transition: all 0.2s !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+  background: #F9F6F3 !important;
+  color: #9C4A38 !important;
+}
+
+.stTabs [aria-selected="true"] {
+  background: #9C4A38 !important;
+  color: var(--white) !important;
+  border-color: #9C4A38 !important;
+  font-weight: 700 !important;
+}
+
+/* ════════════════════════════════════════════════
+   8. BOTONES PRINCIPALES (fuera del sidebar)
+════════════════════════════════════════════════ */
+
+.stDownloadButton > button,
+.stButton > button {
+  background: #9C4A38 !important;
+  color: var(--white) !important;
+  border: none !important;
+  border-radius: var(--radius) !important;
+  font-weight: 700 !important;
+  padding: 0.5rem 1.4rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s !important;
+}
+
+.stDownloadButton > button:hover,
+.stButton > button:hover {
+  background: #7A2F20 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+}
+
+/* ════════════════════════════════════════════════
+   9. INPUTS EN CONTENIDO PRINCIPAL
+════════════════════════════════════════════════ */
+
+.stSelectbox [data-baseweb="select"] > div,
+.stMultiSelect [data-baseweb="select"] > div {
+  background: var(--white) !important;
+  border: 2px solid #9C4A38 !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+}
+
+.stSelectbox [data-baseweb="select"] > div:focus-within,
+.stMultiSelect [data-baseweb="select"] > div:focus-within {
+  border-color: #7A2F20 !important;
+  box-shadow: 0 0 0 3px rgba(156,74,56,0.1) !important;
+}
+
+[data-testid="stMain"] [data-baseweb="tag"] {
+  background: #9C4A38 !important;
+  color: var(--white) !important;
+  border-radius: 20px !important;
+  border: none !important;
+}
+
+[role="option"] {
+  color: var(--text) !important;
+  background: var(--white) !important;
+}
+
+[role="option"]:hover,
+[role="option"][aria-selected="true"] {
+  background: #F5F0EB !important;
+}
+
+/* ════════════════════════════════════════════════
+   10. TABLA DE DATOS
+════════════════════════════════════════════════ */
+
+[data-testid="stDataFrame"] {
+  border: 1px solid rgba(138,47,31,0.12) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow) !important;
+}
+
+hr {
+  border-color: rgba(138,47,31,0.12) !important;
+}
+
+/* ════════════════════════════════════════════════
+   11. LUCIDE ICONS
+════════════════════════════════════════════════ */
+
+.lucide {
+  display: inline-block !important;
+  stroke-width: 2 !important;
+  vertical-align: -3px !important;
+}
+
+/* ════════════════════════════════════════════════
+   12. BOTONES DEL SIDEBAR
+════════════════════════════════════════════════ */
+
+/* Reset base — sobreescribe el color global para el sidebar */
+[data-testid="stSidebar"] .stButton > button,
+[data-testid="stSidebar"] .stDownloadButton > button {
+  width: 100% !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 9px 10px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  letter-spacing: 0.2px !important;
+}
+
+/* Botón secundario (Limpiar datos) — outlined con tono peligro */
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
+  background: transparent !important;
+  color: #8A3A28 !important;
+  border: 1.5px solid #C47A6A !important;
+  box-shadow: none !important;
+}
+
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover {
+  background: rgba(138,58,40,0.07) !important;
+  border-color: #8A3A28 !important;
+  color: #6E2A1A !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(138,58,40,0.12) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"]:active {
+  transform: translateY(0) !important;
+  background: rgba(138,58,40,0.12) !important;
+}
+
+/* Botón primario (Recargar) — sólido con gradiente terracota */
+[data-testid="stSidebar"] [data-testid="baseButton-primary"] {
+  background: linear-gradient(135deg, #A04F3A 0%, #7A3228 100%) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(120,50,40,0.30) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="baseButton-primary"]:hover {
+  background: linear-gradient(135deg, #B55D45 0%, #8A3A30 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(120,50,40,0.38) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="baseButton-primary"]:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 4px rgba(120,50,40,0.25) !important;
+}
+
+/* Download buttons en sidebar — igual que secondary */
+[data-testid="stSidebar"] .stDownloadButton > button {
+  background: transparent !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+[data-testid="stSidebar"] .stDownloadButton > button:hover {
+  background: #F0ECEA !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ════════════════════════════════════════════════
+   13. RESPONSIVE — Tablets (1024px)
+════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  /* Forzar que el header/banner quede por debajo del sidebar */
+  .stApp > div[style*="background:linear-gradient"],
+  .stApp > div[style*="background: linear-gradient"],
+  [data-testid="stHeader"] {
+    z-index: 900 !important;
+    position: relative !important;
+  }
+  body [data-testid="stSidebar"] {
+  [data-testid="stMain"] {
+    padding-top: 2.8rem !important;
+  }
+
+    z-index: 2000 !important;
+  [data-testid="stSidebar"] .sidebar-brand {
+    margin: 0 0 18px 0 !important;
+    padding: 24px 12px 16px !important;
+  }
+
+  [data-testid="stSidebarContent"] {
+    padding: 16px 12px !important;
+  }
+
+  [data-testid="stMetric"] {
+    padding: 12px !important;
+  }
+
+  [data-testid="stPlotlyChart"] {
+    padding: 12px !important;
+  }
+}
+
+/* ════════════════════════════════════════════════
+   14. RESPONSIVE — Móvil (768px)
+════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Quitar z-index del header/banner para que nunca compita con el sidebar */
+  .stApp > div[style*="background:linear-gradient"],
+  .stApp > div[style*="background: linear-gradient"],
+  [data-testid="stHeader"] {
+    z-index: auto !important;
+    position: relative !important;
+  }
+
+  [data-testid="stSidebarContent"] {
+    padding: 12px 10px !important;
+  }
+
+  /* Zona de marca — mantenerla visible en móvil */
+  [data-testid="stSidebar"] .sidebar-brand {
+    margin: 0 0 16px 0 !important;
+    padding: 20px 10px 14px !important;
+  }
+
+  [data-testid="stSidebar"] h3 {
+    font-size: 10px !important;
+    letter-spacing: 1px !important;
+    margin: 14px 0 8px 0 !important;
+  }
+
+  [data-testid="stSidebar"] img {
+    max-height: 40px !important;
+  }
+
+  [data-testid="stSidebar"] [data-baseweb="select"] > div {
+    font-size: 12px !important;
+    padding: 7px 8px !important;
+  }
+
+  [data-testid="stSidebar"] .stDateInput input {
+    font-size: 12px !important;
+    padding: 7px 8px !important;
+  }
+
+  [data-testid="stSidebar"] .stRadio label {
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+  }
+
+  .block-container {
+    padding: 1rem 0.75rem !important;
+  }
+
+  h1, h2, h3 {
+    font-size: 1rem !important;
+  }
+
+  [data-testid="stMetric"] {
+    padding: 10px !important;
+    border-left-width: 3px !important;
+  }
+
+  [data-testid="stMetric"] [data-testid="stMetricValue"] {
+    font-size: 1.4rem !important;
+  }
+
+  [data-testid="stMetric"] label,
+  [data-testid="stMetric"] [data-testid="stMetricLabel"] div {
+    font-size: 0.65rem !important;
+  }
+
+  .stTabs [data-baseweb="tab"] {
+    padding: 6px 10px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .stTabs [data-baseweb="tab-list"] {
+    padding: 4px 4px 0 4px !important;
+    gap: 2px !important;
+  }
+
+  .stDownloadButton > button,
+  .stButton > button {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  [data-testid="stDataFrame"] {
+    font-size: 12px !important;
+  }
+
+  hr {
+    margin: 0.4rem 0 !important;
+  }
+}
+
+/* ════════════════════════════════════════════════
+   15. RESPONSIVE — Teléfono (480px)
+════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+  [data-testid="stMain"] {
+    padding-top: 1.7rem !important;
+  }
+
+  header[data-testid="stHeader"] {
+    padding: 0.3rem 0.5rem !important;
+  }
+
+  [data-testid="stSidebar"] {
+    width: 240px !important;
+    min-width: 240px !important;
+  }
+
+  [data-testid="stSidebarContent"] {
+    padding: 10px 8px !important;
+  }
+
+  /* Zona de marca — mantenerla visible en teléfono */
+  [data-testid="stSidebar"] .sidebar-brand {
+    margin: 0 0 14px 0 !important;
+    padding: 18px 8px 14px !important;
+  }
+
+  [data-testid="stSidebar"] .brand-title {
+    font-size: 11px !important;
+    letter-spacing: 2px !important;
+  }
+
+  [data-testid="stSidebar"] .brand-subtitle {
+    font-size: 8px !important;
+    letter-spacing: 1px !important;
+    margin-top: 3px !important;
+  }
+
+  [data-testid="stSidebar"] img {
+    max-height: 35px !important;
+  }
+
+  [data-testid="stSidebar"] [data-baseweb="select"] > div {
+    font-size: 11px !important;
+    padding: 6px 7px !important;
+  }
+
+  [data-testid="stSidebar"] .stDateInput input {
+    font-size: 11px !important;
+    padding: 6px 7px !important;
+  }
+
+  h1, h2, h3 {
+    font-size: 0.95rem !important;
+  }
+
+  .block-container {
+    padding: 0.75rem 0.5rem !important;
+  }
+
+  [data-testid="stMetric"] [data-testid="stMetricValue"] {
+    font-size: 1.2rem !important;
+  }
+
+  .stTabs [data-baseweb="tab"] {
+    padding: 5px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .stDownloadButton > button,
+  .stButton > button {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  [data-testid="stDataFrame"] {
+    font-size: 11px !important;
+  }
+  }
+
+  /* ════════════════════════════════════════════════
+     16. FIX SUPERPOSICIÓN SIDEBAR < 669px
+  ════════════════════════════════════════════════ */
+  @media (max-width: 669px) {
+    /* Banner principal: desplazar a la derecha cuando el sidebar está fijo */
+      /* Overlay oscuro detrás del sidebar */
+      body.sidebar-open::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(40, 24, 16, 0.32);
+        z-index: 9998 !important;
+        pointer-events: auto;
+        transition: opacity 0.2s;
+      }
+    body [data-testid="stSidebar"] {
+      position: fixed !important;
+      left: 0 !important;
+      top: 0 !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.10) !important;
+      background: #F7F5F3 !important;
+      opacity: 1 !important;
+      backdrop-filter: none !important;
+      pointer-events: auto !important;
+      /* Fondo opaco reforzado */
+      background-color: #F7F5F3 !important;
+      background-image: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+      .stApp > div[style*="background:linear-gradient"],
+      .stApp > div[style*="background: linear-gradient"] {
+        margin-left: 0 !important;
+        width: 100vw !important;
+        min-width: 0 !important;
+        max-width: 100vw !important;
+        z-index: 1 !important;
+        transition: margin-left 0.2s, width 0.2s;
+      }
+      /* Eliminar margen del banner cuando el sidebar está abierto */
+      body.sidebar-open .stApp > div[style*="background:linear-gradient"],
+      body.sidebar-open .stApp > div[style*="background: linear-gradient"] {
+          margin-left: 240px !important;
+          width: calc(100vw - 240px) !important;
+          z-index: 1 !important;
+      }
+    [data-testid="stMain"] {
+      margin-left: 0 !important;
+      width: 100vw !important;
+      min-width: 0 !important;
+      max-width: 100vw !important;
+    }
+    body.sidebar-open [data-testid="stMain"] {
+      margin-left: 240px !important;
+      width: calc(100vw - 240px) !important;
+      min-width: 0 !important;
+      max-width: 100vw !important;
+    }
+  }
+}
