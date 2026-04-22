@@ -46,8 +46,8 @@ Ecommerce/
   tsconfig.json
 ```
 
-## Preparación para despliegue
+## Preparacion para despliegue
 
 1. Contabilidad: construir imagen con `deploy/Dockerfile` y pasar credenciales SQL por variables de entorno.
 2. Ecommerce: construir imagen con `deploy/Dockerfile`, usa salida standalone de Next.js y variables de Shopify por entorno.
-3. CI: Ecommerce ya tiene workflow de validación continua en `.github/workflows/ci.yml`.
+3. CI: Ecommerce ya tiene workflow de validacion continua en `.github/workflows/ci.yml`.
