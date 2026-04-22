@@ -13,13 +13,26 @@ import plotly.graph_objects as go
 from pathlib import Path
 import base64
 import io
-import openpyxl
-import os
+from fpdf import FPDF
 
 try:
     import pytds
 except ImportError:
     pytds = None
+
+from conta_core.export_utils import (
+    calcular_cumplimiento,
+    df_to_excel_grouped,
+    excel_cumplimiento,
+)
+from conta_core.parser_utils import HORA_COLS, parse_excel_file, prepare_loaded_dataframe
+from conta_core.sql_utils import (
+    db_cfg as _db_cfg,
+    db_missing as _db_missing,
+    fetch_sql_hours as _fetch_sql_hours,
+    normalize_doc_series as _normalize_doc_series,
+    sql_connect as _sql_connect,
+)
 
 # Banner corporativo con logo
 LOGO_PATH = Path(__file__).parent / "COSMOS.jpg.jpeg"
@@ -139,27 +152,6 @@ with st.sidebar:
     # SECCIÓN 2: FILTROS PRINCIPALES
     st.markdown("### <i class='lucide lucide-filter'></i> Filtros - Empleados", unsafe_allow_html=True)
 
-# Abreviaciones de columnas de horas con su descripción
-HORA_COLS = {
-    "JORNADA": "Jornada ordinaria",
-    "DO": "D. ordinario",
-    "RNO": "Recargo nocturno ord.",
-    "HEDO": "H. extra diurna ord.",
-    "HENO": "H. extra nocturna ord.",
-    "DOM": "Dominical",
-    "RNF": "Rec. noct. festivo",
-    "HEDF": "H. extra diurna festivo",
-    "HENF": "H. extra noct. festivo",
-    "FEST": "Festivo",
-    "RNDOM": "Rec. noct. dominical",
-    "RDOM": "Rec. dominical",
-    "ODOM": "Hora extra dominical",
-    "ORNF": "Otra rec. noct. festivo",
-    "OEDF": "Otra h. ext. diurna fest.",
-    "OFEST": "Otras horas festivo",
-    "TOTAL": "Total horas",
-}
-
 # ─────────────────────────────────────────────
 # PARSER
 # ─────────────────────────────────────────────
@@ -167,222 +159,12 @@ HORA_COLS = {
 
 @st.cache_data(show_spinner="Leyendo archivo Siesa…")
 def parse_excel(path_or_file) -> pd.DataFrame:
-    """
-    Lee y transforma el archivo Excel exportado desde Siesa Access.
-
-    El archivo contiene una hoja llamada "ReporteXML" con bloques de filas
-    por empleado. Cada bloque comienza con filas que indican "Nombre:",
-    "Documento:" y "Grupo:", seguidas de una fila de encabezados de columnas
-    y luego filas de datos donde la primera columna es el día de la semana.
-
-    Parámetros
-    ----------
-    path_or_file : str | Path | UploadedFile
-        Ruta al archivo .xlsx o el objeto subido por st.file_uploader.
-
-    Retorna
-    -------
-    pd.DataFrame
-        DataFrame limpio con columnas: Nombre, Documento, Grupo, Fecha,
-        Día, Turno, columnas de horas (JORNADA, HEDO, …, TOTAL),
-        Semana, Semana_etiqueta, Mes, Mes_num.
-        Retorna un DataFrame vacío si no se encontraron registros.
-    """
-    if hasattr(path_or_file, 'read'):
-        wb = openpyxl.load_workbook(path_or_file, data_only=True)
-    else:
-        wb = openpyxl.load_workbook(str(path_or_file), data_only=True)
-    ws = wb["ReporteXML"]
-    rows = list(ws.iter_rows(values_only=True))
-
-    records = []
-    current_nombre = None
-    current_documento = None
-    current_grupo = None
-    col_map = {}  # colIndex -> colName
-
-    # Nombres de días en español para detectar filas de datos
-    DIAS = {"lunes", "martes", "miércoles", "miercoles", "jueves",
-            "viernes", "sábado", "sabado", "domingo"}
-
-    for row in rows:
-        # Buscar marcador de empleado
-        vals = {i: v for i, v in enumerate(row) if v is not None}
-        if not vals:
-            continue
-
-        # Detectar "Nombre:"
-        for v in vals.values():
-            sv = str(v).strip()
-            if sv.startswith("Nombre:"):
-                current_nombre = sv.replace("Nombre:", "").strip()
-                col_map = {}
-                break
-
-        # Detectar "Documento:"
-        for v in vals.values():
-            sv = str(v).strip()
-            if sv.startswith("Documento:"):
-                current_documento = sv.replace("Documento:", "").strip()
-                break
-
-        # Detectar "Grupo:"
-        for v in vals.values():
-            sv = str(v).strip()
-            if sv.startswith("Grupo:"):
-                # strip() extra para eliminar espacios, tabs y saltos de línea ocultos
-                current_grupo = " ".join(sv.replace("Grupo:", "").split())
-                break
-
-        # Detectar fila de encabezados de columnas (contiene 'Fecha' y 'TOTAL')
-        row_str_vals = [str(v).strip() for v in vals.values()]
-        if "Fecha" in row_str_vals and "TOTAL" in row_str_vals:
-            col_map = {}
-            for idx, v in vals.items():
-                if v is not None:
-                    name = str(v).strip().replace("\n", " ")
-                    col_map[idx] = name
-            continue
-
-        # Detectar fila de datos (primera columna no-nula es un día de la semana)
-        if col_map and current_nombre:
-            first_val = None
-            first_idx = None
-            for i in sorted(vals.keys()):
-                if vals[i] is not None:
-                    first_val = str(vals[i]).strip().lower()
-                    first_idx = i
-                    break
-
-            if first_val and first_val in DIAS:
-                # Es una fila de datos
-                rec = {
-                    "Nombre": current_nombre,
-                    "Documento": current_documento,
-                    "Grupo": current_grupo,
-                }
-                # Mapear columnas según los encabezados dinámicos
-                for col_idx, col_name in col_map.items():
-                    raw = vals.get(col_idx)
-                    if raw is not None and str(raw).strip() not in ("", " "):
-                        rec[col_name] = str(raw).strip()
-                    else:
-                        rec[col_name] = None
-
-                # Normalizar campo Día
-                rec["Día"] = str(vals.get(first_idx, "")).strip().capitalize()
-
-                records.append(rec)
-
-    if not records:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(records)
-
-    # ── Normalizar fecha ──
-    if "Fecha" in df.columns:
-        df["Fecha"] = pd.to_datetime(
-            df["Fecha"].str.strip(), errors="coerce",
-            format="%m/%d/%Y",
-        )
-        # Intentar formato alternativo si falló
-        mask = df["Fecha"].isna()
-        if mask.any():
-            df.loc[mask, "Fecha"] = pd.to_datetime(
-                df.loc[mask, "Fecha_raw"] if "Fecha_raw" in df.columns else df.loc[mask, "Fecha"],
-                errors="coerce",
-            )
-
-    # ── Semana y mes ──
-    if "Fecha" in df.columns:
-        df["Semana"] = df["Fecha"].dt.isocalendar().week.astype("Int64")
-        df["Semana_etiqueta"] = df["Fecha"].dt.to_period("W").astype(str)
-        df["Mes"] = df["Fecha"].dt.strftime("%B %Y")
-        df["Mes_num"] = df["Fecha"].dt.month
-
-    # ── Convertir columnas de horas a float ──
-    hour_candidates = list(HORA_COLS.keys()) + ["TOTAL"]
-    for col in hour_candidates:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
-
-    # Asegurar TOTAL: si la columna se llama 'TOTAL' o coincide parcialmente
-    total_col = next((c for c in df.columns if c.upper() == "TOTAL"), None)
-    if total_col and total_col != "TOTAL":
-        df["TOTAL"] = df[total_col]
-
-    # Filtrar filas sin fecha válida
-    if "Fecha" in df.columns:
-        df = df[df["Fecha"].notna()].copy()
-
-    return df
+    return parse_excel_file(path_or_file)
 
 
 # ─────────────────────────────────────────────
 # SQL HISTORICO (ADITIVO, NO REEMPLAZA EXCEL)
 # ─────────────────────────────────────────────
-
-
-def _get_secret_or_env(key: str, default=None):
-    try:
-        if key in st.secrets:
-            return st.secrets[key]
-    except Exception:
-        pass
-    return os.getenv(key, default)
-
-
-def _db_cfg() -> dict:
-    return {
-        "server": _get_secret_or_env("DB_SERVER"),
-        "port": int(_get_secret_or_env("DB_PORT", "1433")),
-        "name": _get_secret_or_env("DB_NAME"),
-        "user": _get_secret_or_env("DB_USER"),
-        "password": _get_secret_or_env("DB_PASSWORD"),
-    }
-
-
-def _db_missing(cfg: dict) -> list:
-    missing = []
-    if not cfg.get("server"):
-        missing.append("DB_SERVER")
-    if not cfg.get("name"):
-        missing.append("DB_NAME")
-    if not cfg.get("user"):
-        missing.append("DB_USER")
-    if not cfg.get("password"):
-        missing.append("DB_PASSWORD")
-    return missing
-
-
-def _normalize_doc_series(s: pd.Series) -> pd.Series:
-    return (
-        s.astype(str)
-        .str.strip()
-        .str.upper()
-        .str.replace(r"\.0$", "", regex=True)
-        .str.replace(r"[^0-9A-Z]", "", regex=True)
-    )
-
-
-def _to_bool(value, default: bool = True) -> bool:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-    return str(value).strip().lower() in {"1", "true", "yes", "y", "si", "on"}
-
-
-def _sql_connect(cfg: dict):
-    validate_host = _to_bool(_get_secret_or_env("DB_VALIDATE_HOST", True), True)
-    return pytds.connect(
-        server=cfg["server"],
-        port=cfg["port"],
-        database=cfg["name"],
-        user=cfg["user"],
-        password=cfg["password"],
-        validate_host=validate_host,
-    )
 
 
 @st.cache_data(show_spinner=False)
@@ -395,131 +177,9 @@ def _sql_test_connection(cfg: dict) -> bool:
     return ok
 
 
-def _classify_sql_concept(concept_id: str, concept_desc: str, concept_abbr: str) -> str:
-    abbr = str(concept_abbr or "").upper().strip()
-    txt = " ".join(str(x or "") for x in [concept_id, concept_desc, concept_abbr]).upper()
-    txt = " ".join(txt.split())
-
-    # Mapeo estricto por abreviatura para acercar SQL al reporte operativo.
-    if abbr in {"SALBAS"}:
-        return "DO"
-    if abbr in {"REC NOCT", "RNO"}:
-        return "RNO"
-    if abbr in {"HED", "HEDO"}:
-        return "HEDO"
-    if abbr in {"HEN", "HENO"}:
-        return "HENO"
-    if abbr in {"RNF", "RNFS"}:
-        return "RNF"
-    if abbr in {"HEDF"}:
-        return "HEDF"
-    if abbr in {"HENF"}:
-        return "HENF"
-    if abbr in {"HEDN", "RNDOM"}:
-        return "RNDOM"
-    if abbr in {"HEDD", "RDOM"}:
-        return "RDOM"
-    if abbr in {"ODOM"}:
-        return "ODOM"
-    if abbr in {"FEST"}:
-        return "FEST"
-    if abbr in {"OFEST"}:
-        return "OFEST"
-    if abbr in {"ORNF"}:
-        return "ORNF"
-    # Conceptos compensados/licencias/vacaciones no son comparables con el archivo.
-    if abbr in {"DOMCOMPE", "VAC", "VAC ", "CUOTA S", "LIC MATER", "LIC DFLIA", "LIC CAL DOM", "LIC N REM", "INCAP G 66%", "INCAP ACCI T", "HECAPAC"}:
-        return "OTRAS"
-
-    if "RNDOM" in txt or ("RECARGO" in txt and "NOCT" in txt and ("DOM" in txt or "DOMINICAL" in txt)):
-        return "RNDOM"
-    if "RDOM" in txt or ("RECARGO" in txt and ("DOM" in txt or "DOMINICAL" in txt)):
-        return "RDOM"
-    if "RNF" in txt or ("RECARGO" in txt and "NOCT" in txt and "FEST" in txt):
-        return "RNF"
-    if "HEDF" in txt or ("HORA EXTRA DIURNA" in txt and "FEST" in txt):
-        return "HEDF"
-    if "HENF" in txt or ("HORA EXTRA NOCTURNA" in txt and "FEST" in txt):
-        return "HENF"
-    if "OFEST" in txt:
-        return "OFEST"
-    if "RECARGO NOCTURNO" in txt and "DOM" not in txt and "FEST" not in txt:
-        return "RNO"
-    if "HORA EXTRA DIURNA" in txt and "DOM" not in txt and "FEST" not in txt:
-        return "HEDO"
-    if "HORA EXTRA NOCTURNA" in txt and "DOM" not in txt and "FEST" not in txt:
-        return "HENO"
-    if "DOMING" in txt or "DOMINICAL" in txt:
-        return "DOM"
-    if "FEST" in txt:
-        return "FEST"
-    if "SALARIO BASICO" in txt or "JORNADA" in txt:
-        return "DO"
-    return "OTRAS"
-
-
 @st.cache_data(show_spinner="Consultando horas historicas en SQL...")
 def _sql_fetch_hours(cfg: dict, fecha_ini, fecha_fin) -> pd.DataFrame:
-    conn = _sql_connect(cfg)
-    cur = conn.cursor()
-    query = """
-    SELECT
-        CAST(m.c0602_fecha AS date) AS Fecha,
-        t.f200_nit AS Documento,
-        LTRIM(RTRIM(CONCAT(ISNULL(t.f200_nombres, ''), ' ', ISNULL(t.f200_apellido1, ''), ' ', ISNULL(t.f200_apellido2, '')))) AS Nombre,
-        c.c0501_id AS ConceptoID,
-        c.c0501_descripcion AS Concepto,
-        c.c0501_abreviatura AS Abreviatura,
-        SUM(ISNULL(m.c0602_horas, 0)) AS Horas
-    FROM dbo.w0602_movto_nomina m
-    INNER JOIN dbo.w0501_conceptos c ON c.c0501_rowid = m.c0602_rowid_concepto
-    LEFT JOIN dbo.t200_mm_terceros t ON t.f200_rowid = m.c0602_rowid_tercero AND t.f200_id_cia = m.c0602_id_cia
-    WHERE m.c0602_horas IS NOT NULL
-      AND m.c0602_horas > 0
-      AND CAST(m.c0602_fecha AS date) BETWEEN %s AND %s
-    GROUP BY
-        CAST(m.c0602_fecha AS date),
-        t.f200_nit,
-        t.f200_nombres,
-        t.f200_apellido1,
-        t.f200_apellido2,
-        c.c0501_id,
-        c.c0501_descripcion,
-        c.c0501_abreviatura
-    """
-    cur.execute(query, (fecha_ini, fecha_fin))
-    rows = cur.fetchall()
-    conn.close()
-
-    raw = pd.DataFrame(rows, columns=["Fecha", "Documento", "Nombre", "ConceptoID", "Concepto", "Abreviatura", "Horas"])
-    if raw.empty:
-        return raw
-
-    raw["Fecha"] = pd.to_datetime(raw["Fecha"])
-    raw["Categoria"] = raw.apply(
-        lambda r: _classify_sql_concept(r["ConceptoID"], r["Concepto"], r["Abreviatura"]),
-        axis=1,
-    )
-    # NOTA: SALBAS en SQL no almacena horas por turno sino el salario base acumulado.
-    # Reclasificarlo por día de semana inflaría DOM con valores monetarios, NO con horas reales.
-    # DOM en SQL solo se alimenta de conceptos explícitamente dominicales (ej. RDOM, RNDOM).
-    # La diferencia residual entre DOM SQL y DOM Excel es una limitación estructural del ERP.
-
-    out = (
-        raw.groupby(["Fecha", "Documento", "Nombre", "Categoria"], as_index=False)["Horas"]
-        .sum()
-        .pivot_table(index=["Fecha", "Documento", "Nombre"], columns="Categoria", values="Horas", fill_value=0)
-        .reset_index()
-    )
-    out.columns = [str(c) for c in out.columns]
-    for col in ["DO", "RNO", "HEDO", "HENO", "DOM", "RNF", "HEDF", "HENF",
-                "FEST", "RNDOM", "RDOM", "ODOM", "ORNF", "OFEST", "OTRAS"]:
-        if col not in out.columns:
-            out[col] = 0.0
-    out["TOTAL"] = out[["DO", "RNO", "HEDO", "HENO", "DOM", "RNF", "HEDF", "HENF",
-                         "FEST", "RNDOM", "RDOM", "ODOM", "ORNF", "OFEST"]].sum(axis=1)
-    out["Mes"] = out["Fecha"].dt.to_period("M").astype(str)
-    return out
+    return _fetch_sql_hours(cfg, fecha_ini, fecha_fin)
 
 
 # ─────────────────────────────────────────────
@@ -540,15 +200,7 @@ if df.empty:
     st.error("No se pudieron extraer datos del archivo. Verifica el formato.")
     st.stop()
 
-# Normalizar columna Grupo: eliminar espacios redundantes
-if "Grupo" in df.columns:
-    df["Grupo"] = df["Grupo"].astype(str).str.strip().str.replace(r"\s+", " ", regex=True)
-    df["Grupo"] = df["Grupo"].replace("None", "(Sin grupo)").fillna("(Sin grupo)")
-
-# Columnas de horas disponibles en el DataFrame
-HORAS_DISPONIBLES = [c for c in HORA_COLS if c in df.columns]
-if "TOTAL" in df.columns and "TOTAL" not in HORAS_DISPONIBLES:
-    HORAS_DISPONIBLES.append("TOTAL")
+df, HORAS_DISPONIBLES = prepare_loaded_dataframe(df)
 
 # ── Detectar cambio de archivo y resetear filtros de tiendas/empleados ──
 _current_file_id = uploaded_file.name if uploaded_file else ""
@@ -869,7 +521,15 @@ if len(sel_personas) == 1:
         hide_index=True,
         height=min(80 + len(_df_detalle) * 40, 500),
     )
-    _xlsx_detalle_emp = df_to_excel_grouped(_df_detalle, f"Detalle {emp_name}", group_col="_none_")
+
+    def _export_detalle_empleado_excel(df_detalle: pd.DataFrame, title: str) -> bytes:
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            df_detalle.to_excel(writer, index=False, sheet_name=title[:31])
+        buf.seek(0)
+        return buf.read()
+
+    _xlsx_detalle_emp = _export_detalle_empleado_excel(_df_detalle, f"Detalle {emp_name}")
     st.download_button(
         "⬇ Descargar Excel (detalle empleado)",
         data=_xlsx_detalle_emp,
@@ -1042,261 +702,10 @@ st.plotly_chart(fig, use_container_width=True)
 # ─────────────────────────────────────────────
 # FUNCIONES DE EXPORTACIÓN
 # ─────────────────────────────────────────────
-import io
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
-from fpdf import FPDF
 
-# Columnas de horas extras reconocidas
-COLS_HORAS_EXTRA = ["HEDO", "HENO", "HEDF", "HENF"]
-
-# Límites legales (Ley 2466 de 2025 / Código Sustantivo del Trabajo)
-LIMITE_DIARIO_HE = 2.0    # máximo 2 horas extras por día
-LIMITE_SEMANAL_HE = 12.0  # máximo 12 horas extras por semana
-
-
-def calcular_cumplimiento(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Verifica el cumplimiento de los límites legales de horas extras.
-
-    Norma aplicada: Ley 2466 de 2025 / Código Sustantivo del Trabajo.
-    - Máximo 2 horas extras diarias por empleado.
-    - Máximo 12 horas extras semanales por empleado.
-
-    Parámetros
-    ----------
-    df : pd.DataFrame
-        DataFrame con columnas de horas extras, Nombre, Fecha, Semana_etiqueta.
-
-    Retorna
-    -------
-    (df_diario, df_semanal) : tuple de DataFrames
-        df_diario  → una fila por empleado/día con total extras y estado.
-        df_semanal → una fila por empleado/semana con total extras y estado.
-        En ambos, la columna "Estado" indica "✅ OK" o "🚨 EXCEDE LÍMITE".
-    """
-    # Columnas de horas extras que existen en el DataFrame
-    extras_cols = [c for c in COLS_HORAS_EXTRA if c in df.columns]
-
-    work = df.copy()
-    work["_HE_Total"] = work[extras_cols].sum(axis=1) if extras_cols else 0.0
-
-    # ── Resumen diario ──
-    grp_dia = (
-        work.groupby(["Nombre", "Fecha"])["_HE_Total"]
-        .sum()
-        .reset_index()
-        .rename(columns={"_HE_Total": "H. Extra del día"})
-    )
-    grp_dia["Fecha"] = grp_dia["Fecha"].dt.strftime("%d/%m/%Y")
-    grp_dia["Límite diario"] = LIMITE_DIARIO_HE
-    grp_dia["Exceso diario"] = (grp_dia["H. Extra del día"] - LIMITE_DIARIO_HE).clip(lower=0).round(2)
-    grp_dia["Estado"] = grp_dia["H. Extra del día"].apply(
-        lambda x: "🚨 EXCEDE LÍMITE" if x > LIMITE_DIARIO_HE else "✅ OK"
-    )
-    # Excluir días sin horas extras (no aplica verificación)
-    grp_dia = grp_dia[grp_dia["H. Extra del día"] > 0].reset_index(drop=True)
-
-    # ── Resumen semanal ──
-    if "Semana_etiqueta" in work.columns:
-        grp_sem = (
-            work.groupby(["Nombre", "Semana_etiqueta"])["_HE_Total"]
-            .sum()
-            .reset_index()
-            .rename(columns={"Semana_etiqueta": "Semana", "_HE_Total": "H. Extra semana"})
-        )
-    else:
-        grp_sem = pd.DataFrame(columns=["Nombre", "Semana", "H. Extra semana"])
-
-    grp_sem["Límite semanal"] = LIMITE_SEMANAL_HE
-    grp_sem["Exceso semanal"] = (grp_sem["H. Extra semana"] - LIMITE_SEMANAL_HE).clip(lower=0).round(2)
-    grp_sem["Estado"] = grp_sem["H. Extra semana"].apply(
-        lambda x: "🚨 EXCEDE LÍMITE" if x > LIMITE_SEMANAL_HE else "✅ OK"
-    )
-    # Excluir semanas sin horas extras (no aplica verificación)
-    grp_sem = grp_sem[grp_sem["H. Extra semana"] > 0].reset_index(drop=True)
-
-    return grp_dia, grp_sem
-
-
-def excel_cumplimiento(df_diario: pd.DataFrame, df_semanal: pd.DataFrame) -> bytes:
-    """
-    Genera un Excel con dos hojas: incumplimientos diarios y semanales.
-    Las filas con exceso se resaltan en rojo para fácil identificación.
-
-    Retorna
-    -------
-    bytes
-        Contenido binario del .xlsx.
-    """
-    wb = Workbook()
-
-    COLOR_OK       = "E8F5E9"  # verde claro
-    COLOR_EXCEDE   = "FFEBEE"  # rojo claro
-    COLOR_HEADER   = "8A2F1F"  # rojo corporativo
-    thin = Side(style="thin", color="CCCCCC")
-    brd  = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-    def _write_sheet(ws, df, titulo):
-        # Fila de título
-        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(df.columns))
-        title_cell = ws.cell(row=1, column=1, value=titulo)
-        title_cell.font = Font(bold=True, size=12, color="FFFFFF")
-        title_cell.fill = PatternFill("solid", fgColor=COLOR_HEADER)
-        title_cell.alignment = Alignment(horizontal="center")
-
-        # Encabezados
-        hdr_font = Font(bold=True, color="FFFFFF", size=10)
-        hdr_fill = PatternFill("solid", fgColor="5D2010")
-        for ci, col in enumerate(df.columns, 1):
-            c = ws.cell(row=2, column=ci, value=col)
-            c.font = hdr_font
-            c.fill = hdr_fill
-            c.alignment = Alignment(horizontal="center")
-            c.border = brd
-        ws.freeze_panes = "A3"
-
-        # Filas de datos
-        for ri, (_, row) in enumerate(df.iterrows(), 3):
-            es_exceso = "EXCEDE" in str(row.get("Estado", ""))
-            fill = PatternFill("solid", fgColor=COLOR_EXCEDE if es_exceso else COLOR_OK)
-            for ci, val in enumerate(row, 1):
-                c = ws.cell(row=ri, column=ci, value=val)
-                c.fill = fill
-                c.border = brd
-                c.font = Font(size=9, bold=es_exceso, color="B71C1C" if es_exceso else "1B5E20")
-                if isinstance(val, float):
-                    c.number_format = "0.00"
-
-        # Auto-ancho
-        for ci, col in enumerate(df.columns, 1):
-            max_len = max(len(str(col)), *(len(str(v)) for v in df.iloc[:, ci - 1]))
-            ws.column_dimensions[get_column_letter(ci)].width = min(max_len + 2, 35)
-
-    # Hoja 1 – diario
-    ws1 = wb.active
-    ws1.title = "Incumplimiento Diario"
-    _write_sheet(ws1, df_diario, "Reporte de cumplimiento – Horas extras diarias (máx. 2 h/día)")
-
-    # Hoja 2 – semanal
-    ws2 = wb.create_sheet("Incumplimiento Semanal")
-    _write_sheet(ws2, df_semanal, "Reporte de cumplimiento – Horas extras semanales (máx. 12 h/semana)")
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return buf.read()
-
-
-def df_to_excel_grouped(df, title, group_col="Nombre"):
-    """
-    Genera un archivo Excel (.xlsx) estructurado y visualmente organizado.
-
-    El archivo tiene:
-    - Fila de encabezados con fondo rojo corporativo y texto blanco.
-    - Por cada empleado: una fila de encabezado con su nombre (fondo salmon),
-      sus registros de datos con bordes, y una fila de TOTAL con la suma
-      de columnas numéricas (fondo rosa claro).
-    - Fila en blanco entre empleados para facilitar la lectura.
-    - Anchos de columna automáticos según el contenido.
-    - Primera fila fija (freeze panes) para scroll largo.
-
-    Parámetros
-    ----------
-    df : pd.DataFrame
-        Datos a exportar. Debe contener la columna `group_col`.
-    title : str
-        Título de la hoja (se trunca a 30 caracteres).
-    group_col : str, opcional
-        Nombre de la columna de agrupación (default: "Nombre").
-
-    Retorna
-    -------
-    bytes
-        Contenido binario del archivo .xlsx listo para descargar.
-    """
-    wb = Workbook()
-    ws = wb.active
-    ws.title = title[:30]
-
-    COLOR_HEADER = "8A2F1F"
-    COLOR_GROUP  = "F0DDD6"
-    COLOR_TOTAL  = "FFF3F0"
-
-    thin = Side(style="thin", color="CCCCCC")
-    brd  = Border(left=thin, right=thin, top=thin, bottom=thin)
-
-    cols = list(df.columns)
-    has_group = group_col in cols
-    display_cols = [c for c in cols if c != group_col] if has_group else cols
-
-    hdr_fill = PatternFill("solid", fgColor=COLOR_HEADER)
-    hdr_font = Font(bold=True, color="FFFFFF", size=10)
-    for ci, col in enumerate(display_cols, 1):
-        cell = ws.cell(row=1, column=ci, value=col)
-        cell.fill = hdr_fill
-        cell.font = hdr_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = brd
-    ws.row_dimensions[1].height = 18
-    ws.freeze_panes = "A2"
-
-    grp_fill = PatternFill("solid", fgColor=COLOR_GROUP)
-    grp_font = Font(bold=True, color="3D1A0E", size=10)
-    data_font = Font(size=9)
-    tot_fill  = PatternFill("solid", fgColor=COLOR_TOTAL)
-    tot_font  = Font(bold=True, size=9)
-
-    row_num = 2
-    groups = df.groupby(group_col, sort=False) if has_group else [(None, df)]
-    for emp, grp in groups:
-        if has_group:
-            ws.merge_cells(start_row=row_num, start_column=1, end_row=row_num, end_column=len(display_cols))
-            cell = ws.cell(row=row_num, column=1, value=str(emp))
-            cell.fill = grp_fill
-            cell.font = grp_font
-            cell.alignment = Alignment(horizontal="left", vertical="center")
-            ws.row_dimensions[row_num].height = 16
-            row_num += 1
-
-        num_cols_names = [c for c in display_cols if grp[c].dtype.kind in ("f", "i")]
-
-        for _, data_row in grp.iterrows():
-            for ci, col in enumerate(display_cols, 1):
-                val = data_row[col]
-                cell = ws.cell(row=row_num, column=ci, value=val)
-                cell.font = data_font
-                cell.border = brd
-                if isinstance(val, float):
-                    cell.number_format = "0.00"
-            row_num += 1
-
-        if has_group:
-            for ci, col in enumerate(display_cols, 1):
-                if col in num_cols_names:
-                    val = grp[col].sum()
-                    cell = ws.cell(row=row_num, column=ci, value=val)
-                    cell.number_format = "0.00"
-                else:
-                    cell = ws.cell(row=row_num, column=ci, value="TOTAL" if ci == 1 else "")
-                cell.fill = tot_fill
-                cell.font = tot_font
-                cell.border = brd
-            row_num += 2
-
-    for ci, col in enumerate(display_cols, 1):
-        max_len = len(str(col))
-        for row_cells in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=ci, max_col=ci):
-            for cell in row_cells:
-                if cell.value:
-                    max_len = max(max_len, len(str(cell.value)))
-        ws.column_dimensions[get_column_letter(ci)].width = min(max_len + 2, 32)
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return buf.read()
+# Nota de arquitectura:
+# calcular_cumplimiento, excel_cumplimiento y df_to_excel_grouped
+# se movieron a conta_core.export_utils para reducir acoplamiento en app.py.
 
 def df_to_pdf(df, title):
     """

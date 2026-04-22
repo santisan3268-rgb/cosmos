@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.streamlit/
+tests/
+*.xlsx
+~$*
+.git/
+.gitignore
