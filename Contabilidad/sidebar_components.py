@@ -176,9 +176,15 @@ def archivos_subidos_section() -> tuple[int, int] | None:
 
         total = len(hist)
         ultima_fecha = hist.iloc[0]["fecha"] if total > 0 else "-"
-        st.caption(f"{total} registro(s) · último: {ultima_fecha}")
+        st.caption(f"Registros guardados: **{total}** · Último: {ultima_fecha}")
 
-        # Período activo (para resaltarlo)
+        # Mini-tabla visual
+        vista = hist[["periodo", "archivo", "fecha"]].rename(
+            columns={"periodo": "Período", "archivo": "Archivo", "fecha": "Subido"}
+        )
+        st.dataframe(vista, use_container_width=True, hide_index=True, height=min(220, 36 + 35 * total))
+
+        # Botones de apertura rápida por fila
         actual = st.session_state.get("_selected_db_period")
         active_tuple = (
             (int(actual["anio"]), int(actual["mes"]))
@@ -189,33 +195,27 @@ def archivos_subidos_section() -> tuple[int, int] | None:
             anio_row = int(row["anio"])
             mes_row = int(row["mes"])
             periodo_label = str(row["periodo"])
-            archivo_label = str(row["archivo"])
-            fecha_label = str(row["fecha"])
             is_active = active_tuple == (anio_row, mes_row)
 
-            label_btn = f"{'✓ ' if is_active else ''}{periodo_label}"
-            st.markdown(
-                f"<small style='color:#888;line-height:1.2'>"
-                f"{archivo_label} · {fecha_label}"
-                f"</small>",
-                unsafe_allow_html=True,
-            )
-            if st.button(
-                label_btn,
-                key=f"btn_open_db_{anio_row}_{mes_row}",
-                icon=":material/folder_open:",
-                use_container_width=True,
-                type="primary" if is_active else "secondary",
-            ):
-                if is_active:
-                    st.session_state.pop("_selected_db_period", None)
-                else:
-                    st.session_state["_selected_db_period"] = {
-                        "anio": anio_row,
-                        "mes": mes_row,
-                    }
-                    st.session_state.pop("_pending_save", None)
-                st.rerun()
+            c_lbl, c_btn = st.columns([3, 1])
+            c_lbl.caption(f"{'✓ ' if is_active else ''}{periodo_label}")
+            with c_btn:
+                if st.button(
+                    "↗",
+                    key=f"btn_open_db_{anio_row}_{mes_row}",
+                    use_container_width=True,
+                    type="primary" if is_active else "secondary",
+                    help=f"Abrir {periodo_label}",
+                ):
+                    if is_active:
+                        st.session_state.pop("_selected_db_period", None)
+                    else:
+                        st.session_state["_selected_db_period"] = {
+                            "anio": anio_row,
+                            "mes": mes_row,
+                        }
+                        st.session_state.pop("_pending_save", None)
+                    st.rerun()
 
     selected = st.session_state.get("_selected_db_period")
     if isinstance(selected, dict) and "anio" in selected and "mes" in selected:
