@@ -234,9 +234,12 @@ def build():
     # Logo centrado en la portada
     _logo_path = LOGO_FULL if LOGO_FULL.exists() else (ISOTIPO if ISOTIPO.exists() else None)
     if _logo_path:
-        # Centrar horizontalmente: ancho imagen ~40mm
-        pdf.image(str(_logo_path), x=85, y=8, h=28)
-        _titulo_y = 42
+        # Centrar horizontalmente: imagen 300x79px → con h=26, w≈99mm → x=(210-99)/2≈56
+        _img_h = 26
+        _img_w = round(_img_h * 300 / 79, 1)
+        _img_x = round((210 - _img_w) / 2, 1)
+        pdf.image(str(_logo_path), x=_img_x, y=10, w=_img_w, h=_img_h)
+        _titulo_y = 44
     else:
         _titulo_y = 18
 
