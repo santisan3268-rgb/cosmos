@@ -1,0 +1,22 @@
+/* ═══════════════════════════════════════════════════════════
+   BASE — Fondo global, tipografía y header nativo de Streamlit
+═══════════════════════════════════════════════════════════ */
+
+body, .stApp, .main, .block-container {
+  background-color: var(--bg) !important;
+  font-family: "Segoe UI", system-ui, sans-serif !important;
+  color: var(--text) !important;
+}
+
+[data-testid="stMain"] {
+  padding-top: 2.8rem !important;
+}
+
+/* Header nativo de Streamlit */
+header[data-testid="stHeader"] {
+  background: rgba(247, 245, 243, 0.85) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04) !important;
+  z-index: 100 !important;
+}

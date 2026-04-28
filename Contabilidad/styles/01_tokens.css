@@ -1,0 +1,23 @@
+/* ═══════════════════════════════════════════════════════════
+   FYC Calzado — Tokens de diseño corporativo
+   Paleta: Terracota / Café / Crema
+   Editar aquí para cambiar la identidad visual del sistema.
+   Corresponde a: capa de dominio (conta_core/) — primitivos.
+═══════════════════════════════════════════════════════════ */
+
+:root {
+  --primary:        #B8927F;
+  --primary-dark:   #8A2F1F;
+  --secondary:      #A68070;
+  --accent:         #D4A399;
+  --bg:             #F5F0EB;
+  --sidebar-bg:     #F7F5F3;
+  --white:          #FFFFFF;
+  --text:           #3D3A38;
+  --text-muted:     #8F8A86;
+  --border:         #D8D2CC;
+  --border-light:   #EEEAE6;
+  --shadow:         0 2px 8px rgba(0,0,0,0.06);
+  --radius:         8px;
+  --radius-lg:      12px;
+}

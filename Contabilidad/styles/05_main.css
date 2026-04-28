@@ -1,0 +1,164 @@
+/* ═══════════════════════════════════════════════════════════
+   MAIN — Contenido principal
+   Corresponde a: views/kpis.py, views/tab_*.py
+   Incluye: títulos, KPIs, gráficos, pestañas, botones,
+            inputs, tabla de datos e iconos.
+═══════════════════════════════════════════════════════════ */
+
+/* ── Títulos ── */
+h1, h2, h3 {
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+}
+
+h4, h5, h6 {
+  color: var(--secondary) !important;
+  font-weight: 600 !important;
+}
+
+.stCaption, small {
+  color: var(--text-muted) !important;
+}
+
+/* ── KPIs / Métricas ── */
+[data-testid="stMetric"] {
+  background: var(--white) !important;
+  border-radius: 12px !important;
+  padding: 22px 18px !important;
+  text-align: center !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04) !important;
+  border-left: 5px solid var(--primary) !important;
+  border: 1px solid rgba(184,146,127,0.15) !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+[data-testid="stMetric"]:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06) !important;
+  transform: translateY(-2px) !important;
+}
+
+[data-testid="stMetric"] label,
+[data-testid="stMetric"] [data-testid="stMetricLabel"] div {
+  color: var(--secondary) !important;
+  font-weight: 500 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+[data-testid="stMetric"] [data-testid="stMetricValue"] {
+  color: var(--primary) !important;
+  font-size: 1.9rem !important;
+  font-weight: 700 !important;
+}
+
+/* ── Gráficos ── */
+[data-testid="stPlotlyChart"], .stPlotlyChart {
+  background: var(--white) !important;
+  border-radius: 10px !important;
+  padding: 16px !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ── Pestañas ── */
+.stTabs [data-baseweb="tab-list"] {
+  background: #EDE8E3 !important;
+  border-radius: 10px 10px 0 0 !important;
+  gap: 4px !important;
+  padding: 6px 6px 0 6px !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  background: var(--white) !important;
+  color: #7A7070 !important;
+  border-radius: 8px 8px 0 0 !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+  padding: 10px 20px !important;
+  font-size: 0.88rem !important;
+  transition: all 0.2s !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+  background: #F9F6F3 !important;
+  color: #9C4A38 !important;
+}
+
+.stTabs [aria-selected="true"] {
+  background: #9C4A38 !important;
+  color: var(--white) !important;
+  border-color: #9C4A38 !important;
+  font-weight: 700 !important;
+}
+
+/* ── Botones principales (fuera del sidebar) ── */
+.stDownloadButton > button,
+.stButton > button {
+  background: #9C4A38 !important;
+  color: var(--white) !important;
+  border: none !important;
+  border-radius: var(--radius) !important;
+  font-weight: 700 !important;
+  padding: 0.5rem 1.4rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s !important;
+}
+
+.stDownloadButton > button:hover,
+.stButton > button:hover {
+  background: #7A2F20 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+}
+
+/* ── Selectbox / Multiselect en área principal ── */
+.stSelectbox [data-baseweb="select"] > div,
+.stMultiSelect [data-baseweb="select"] > div {
+  background: var(--white) !important;
+  border: 2px solid #9C4A38 !important;
+  border-radius: var(--radius) !important;
+  color: var(--text) !important;
+}
+
+.stSelectbox [data-baseweb="select"] > div:focus-within,
+.stMultiSelect [data-baseweb="select"] > div:focus-within {
+  border-color: #7A2F20 !important;
+  box-shadow: 0 0 0 3px rgba(156,74,56,0.1) !important;
+}
+
+[data-testid="stMain"] [data-baseweb="tag"] {
+  background: #9C4A38 !important;
+  color: var(--white) !important;
+  border-radius: 20px !important;
+  border: none !important;
+}
+
+[role="option"] {
+  color: var(--text) !important;
+  background: var(--white) !important;
+}
+
+[role="option"]:hover,
+[role="option"][aria-selected="true"] {
+  background: #F5F0EB !important;
+}
+
+/* ── Tabla de datos ── */
+[data-testid="stDataFrame"] {
+  border: 1px solid rgba(138,47,31,0.12) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow) !important;
+}
+
+hr {
+  border-color: rgba(138,47,31,0.12) !important;
+}
+
+/* ── Lucide Icons ── */
+.lucide {
+  display: inline-block !important;
+  stroke-width: 2 !important;
+  vertical-align: -3px !important;
+}

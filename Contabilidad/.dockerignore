@@ -1,0 +1,28 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Secretos locales
+.streamlit/secrets.toml
+.streamlit/backups/
+
+# Datos operativos locales
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de operación (no deben ir en imagen)
+*.xlsx
+*.xls
+*.csv
+*_out.txt
+*_err.txt
+
+# Artefactos y docs internas
+_audit*.py
+SECURITY_SETUP.md
