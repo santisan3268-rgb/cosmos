@@ -176,105 +176,46 @@ def archivos_subidos_section() -> tuple[int, int] | None:
 
         total = len(hist)
         ultima_fecha = hist.iloc[0]["fecha"] if total > 0 else "-"
-        st.caption(f"Registros guardados: **{total}**")
-        st.caption(f"Última carga: **{ultima_fecha}**")
+        st.caption(f"{total} registro(s) · último: {ultima_fecha}")
 
-        st.markdown("##### Apertura rápida")
+        # Período activo (para resaltarlo)
+        actual = st.session_state.get("_selected_db_period")
+        active_tuple = (
+            (int(actual["anio"]), int(actual["mes"]))
+            if isinstance(actual, dict) else None
+        )
+
         for _, row in hist.iterrows():
             anio_row = int(row["anio"])
             mes_row = int(row["mes"])
             periodo_label = str(row["periodo"])
             archivo_label = str(row["archivo"])
             fecha_label = str(row["fecha"])
+            is_active = active_tuple == (anio_row, mes_row)
 
-            c_info, c_btn = st.columns([4, 1])
-            with c_info:
-                st.markdown(
-                    f"**{periodo_label}**  \n"
-                    f"{archivo_label}  \n"
-                    f"_{fecha_label}_"
-                )
-            with c_btn:
-                if st.button(
-                    "Abrir",
-                    key=f"btn_open_db_{anio_row}_{mes_row}",
-                    use_container_width=True,
-                    type="secondary",
-                ):
+            label_btn = f"{'✓ ' if is_active else ''}{periodo_label}"
+            st.markdown(
+                f"<small style='color:#888;line-height:1.2'>"
+                f"{archivo_label} · {fecha_label}"
+                f"</small>",
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                label_btn,
+                key=f"btn_open_db_{anio_row}_{mes_row}",
+                icon=":material/folder_open:",
+                use_container_width=True,
+                type="primary" if is_active else "secondary",
+            ):
+                if is_active:
+                    st.session_state.pop("_selected_db_period", None)
+                else:
                     st.session_state["_selected_db_period"] = {
                         "anio": anio_row,
                         "mes": mes_row,
                     }
                     st.session_state.pop("_pending_save", None)
-                    st.rerun()
-
-            st.divider()
-
-        opciones = [
-            (int(row["anio"]), int(row["mes"]))
-            for _, row in hist.iterrows()
-        ]
-        labels = {
-            (int(row["anio"]), int(row["mes"])): (
-                f"{row['periodo']} · {row['archivo']}"
-            )
-            for _, row in hist.iterrows()
-        }
-
-        actual = st.session_state.get("_selected_db_period")
-        if isinstance(actual, dict):
-            current_tuple = (int(actual.get("anio", 0)), int(actual.get("mes", 0)))
-        else:
-            current_tuple = None
-
-        default_idx = 0
-        if current_tuple in opciones:
-            default_idx = opciones.index(current_tuple)
-
-        periodo_sel = st.selectbox(
-            "Período guardado",
-            options=opciones,
-            index=default_idx,
-            format_func=lambda p: labels[p],
-            key="db_periodo_cargar_sel",
-            help="Selecciona un período guardado para abrir su resumen desde la base de datos.",
-        )
-
-        col_load, col_clear = st.columns(2)
-        with col_load:
-            if st.button(
-                "Abrir",
-                icon=":material/folder_open:",
-                use_container_width=True,
-                key="btn_cargar_periodo_bd",
-                type="primary",
-            ):
-                st.session_state["_selected_db_period"] = {
-                    "anio": int(periodo_sel[0]),
-                    "mes": int(periodo_sel[1]),
-                }
-                st.session_state.pop("_pending_save", None)
                 st.rerun()
-
-        with col_clear:
-            if st.button(
-                "Cerrar",
-                icon=":material/close:",
-                use_container_width=True,
-                key="btn_limpiar_periodo_bd",
-                type="secondary",
-            ):
-                st.session_state.pop("_selected_db_period", None)
-                st.rerun()
-
-        vista = hist[["periodo", "archivo", "fecha"]].rename(
-            columns={
-                "periodo": "Período",
-                "archivo": "Archivo",
-                "fecha": "Fecha carga",
-            }
-        )
-        st.dataframe(vista, use_container_width=True, hide_index=True, height=220)
 
     selected = st.session_state.get("_selected_db_period")
     if isinstance(selected, dict) and "anio" in selected and "mes" in selected:
