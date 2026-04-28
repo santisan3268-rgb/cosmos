@@ -33,9 +33,7 @@ def _s(text: str) -> str:
     """Sanitiza texto para latin-1: reemplaza caracteres fuera de rango."""
     replacements = {
         "\u2014": "-", "\u2013": "-", "\u2018": "'", "\u2019": "'",
-        "\u201c": '"', "\u201d": '"', "\u2026": "...", "\u00e9": "e",
-        "\u00f3": "o", "\u00fa": "u", "\u00ed": "i", "\u00e1": "a",
-        "\u00f1": "n", "\u00e3": "a", "\u00e0": "a", "\u00fc": "u",
+        "\u201c": '"', "\u201d": '"', "\u2026": "...", "\u00e3": "a", "\u00e0": "a",
         # emojis -> texto plano
         "\U0001f512": "[*]", "\U0001f4a1": "[!]", "\u26a0": "[!]",
         "\u2139": "[i]", "\u2753": "[?]",
@@ -441,7 +439,7 @@ def build():
 
     pdf.h2("3.3 Duración de la sesión")
     pdf.body(
-        "La sesión tiene una duración máxima de 8 horas. Transcurrido ese tiempo, "
+        "La sesión tiene una duración máxima de 1 hora. Transcurrido ese tiempo, "
         "el sistema cerrará la sesión automáticamente y solicitará autenticación nuevamente."
     )
     pdf.body("Para cerrar la sesión manualmente, utilice el botón 'Cerrar sesión' en la parte inferior del panel lateral izquierdo.")
@@ -650,7 +648,8 @@ def build():
          "Exporta en Excel el análisis de cumplimiento legal, con celdas en verde "
          "(cumple) y rojo (supera límites). Disponible en la pestaña 'Cumplimiento Ley 2466'."),
         ("PDF del reporte",
-         "Genera una versión PDF del reporte de labor con formato corporativo. "
+            "Genera una versión PDF del reporte de labor con formato corporativo. Conserva el histórico "
+            "documental del período exportado para consulta y auditoría interna. "
          "Disponible en pestañas seleccionadas mediante el botón de descarga."),
     ]
 
@@ -680,7 +679,7 @@ def build():
 
     pdf.h2("Medidas de seguridad implementadas")
     pdf.bullet("Autenticación por contraseña en cada acceso.")
-    pdf.bullet("Sesión con tiempo de expiración automático (8 horas por defecto).")
+    pdf.bullet("Sesión con tiempo de expiración automático (1 hora por defecto).")
     pdf.bullet("Detección de cambio de IP: si la IP cambia durante la sesión, se cierra automáticamente.")
     pdf.bullet("Fail-closed: si la contraseña no está configurada, la app bloquea el acceso completamente.")
     pdf.bullet("Los archivos Excel se procesan solo en memoria — nunca se escriben en disco.")
@@ -747,7 +746,7 @@ def build():
          "esté activa. En Streamlit Cloud los datos de BD persisten entre sesiones "
          "del mismo despliegue."),
         ("La sesión se cerró sola, ¿es normal?",
-         "Sí. La sesión expira automáticamente después de 8 horas de inactividad "
+         "Sí. La sesión expira automáticamente después de 1 hora de inactividad "
          "o cuando se detecta un cambio de IP. Vuelve a ingresar la contraseña."),
         ("¿Cómo corrijo un registro guardado por error?",
          "Sube el archivo correcto, selecciona el mismo año y mes en 'Registro "
@@ -762,7 +761,7 @@ def build():
         pdf.set_font("Helvetica", "B", 9.5)
         pdf.set_text_color(*TERRACOTA)
         pdf.set_x(14)
-        pdf.multi_cell(0, 6, f"❓  {pregunta}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.multi_cell(0, 6, f"Pregunta: {pregunta}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font("Helvetica", "", 9)
         pdf.set_text_color(*GRIS_OSCURO)
         pdf.set_x(20)
@@ -775,6 +774,7 @@ def build():
         "Para solicitar soporte técnico, reportar errores o gestionar accesos, "
         "contacta directamente al administrador del sistema de FYC Calzado."
     )
+    pdf.bullet("Ubicación: Rionegro, Antioquia.")
     pdf.info_box(
         "🔒  Recuerda: la contraseña de acceso se entrega directamente y de forma "
         "personal por el administrador del sistema. Nunca se envía por medios digitales.",
