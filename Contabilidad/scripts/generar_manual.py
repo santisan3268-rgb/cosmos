@@ -133,7 +133,7 @@ class ManualPDF(FPDF):
     def bullet(self, text: str, level: int = 0):
         """Ítem de lista con viñeta."""
         indent = 6 + level * 6
-        bullet_char = "•" if level == 0 else "–"
+        bullet_char = "*" if level == 0 else "-"
         self.set_font("Helvetica", "", 9.5)
         self.set_text_color(*GRIS_OSCURO)
         self.set_x(14 + indent)
