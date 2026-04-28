@@ -19,7 +19,9 @@ GRIS_OSCURO = (45, 45, 45)
 GRIS_MEDIO  = (110, 110, 110)
 GRIS_CLARO  = (220, 215, 210)
 
-APP_URL = "https://santisan3268-rgb-cosmos-contabilidadapp-qnttxg.streamlit.app/"
+APP_URL    = "https://santisan3268-rgb-cosmos-contabilidadapp-qnttxg.streamlit.app/"
+ISOTIPO    = Path(__file__).parent.parent / "isotipo-png.png"
+LOGO_FULL  = Path(__file__).parent.parent / "COSMOS.jpg.jpeg"
 FECHA   = datetime.date.today().strftime("%d de %B de %Y").replace(
     "January","enero").replace("February","febrero").replace("March","marzo"
     ).replace("April","abril").replace("May","mayo").replace("June","junio"
@@ -69,13 +71,16 @@ class ManualPDF(FPDF):
     def header(self):
         if self.page_no() == 1:
             return
-        # Banda superior delgada
+        # Banda superior terracota
         self.set_fill_color(*TERRACOTA)
-        self.rect(0, 0, 210, 8, "F")
-        # Título del doc a la derecha
+        self.rect(0, 0, 210, 10, "F")
+        # Isotipo a la izquierda
+        if ISOTIPO.exists():
+            self.image(str(ISOTIPO), x=3, y=1, h=8)
+        # Título a la derecha
         self.set_font("Helvetica", "B", 7)
         self.set_text_color(*BLANCO)
-        self.set_y(1.5)
+        self.set_y(2.5)
         self.cell(0, 5, "FYC Calzado · Manual de Usuario · Dashboard de Reportes de Labor",
                   align="R", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_text_color(*GRIS_OSCURO)
@@ -218,52 +223,61 @@ def build():
 
     # Fondo superior terracota
     pdf.set_fill_color(*TERRACOTA)
-    pdf.rect(0, 0, 210, 90, "F")
+    pdf.rect(0, 0, 210, 100, "F")
 
     # Decoración geométrica
     pdf.set_fill_color(*CAFE)
-    pdf.rect(0, 75, 210, 5, "F")
+    pdf.rect(0, 85, 210, 6, "F")
     pdf.set_fill_color(180, 100, 80)
-    pdf.rect(0, 80, 210, 2, "F")
+    pdf.rect(0, 91, 210, 2, "F")
+
+    # Logo centrado en la portada
+    _logo_path = LOGO_FULL if LOGO_FULL.exists() else (ISOTIPO if ISOTIPO.exists() else None)
+    if _logo_path:
+        # Centrar horizontalmente: ancho imagen ~40mm
+        pdf.image(str(_logo_path), x=85, y=8, h=28)
+        _titulo_y = 42
+    else:
+        _titulo_y = 18
 
     # Título principal
-    pdf.set_font("Helvetica", "B", 28)
+    pdf.set_font("Helvetica", "B", 26)
     pdf.set_text_color(*BLANCO)
-    pdf.set_xy(0, 18)
+    pdf.set_xy(0, _titulo_y)
     pdf.cell(0, 12, "MANUAL DE USUARIO", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    pdf.set_font("Helvetica", "", 14)
-    pdf.set_xy(0, 32)
+    pdf.set_font("Helvetica", "", 13)
+    pdf.set_xy(0, _titulo_y + 14)
     pdf.cell(0, 8, "Dashboard de Reportes de Labor", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Línea decorativa blanca
     pdf.set_draw_color(*BLANCO)
     pdf.set_line_width(0.8)
-    pdf.line(60, 44, 150, 44)
+    pdf.line(60, _titulo_y + 24, 150, _titulo_y + 24)
 
     # Empresa
     pdf.set_font("Helvetica", "B", 11)
-    pdf.set_xy(0, 48)
+    pdf.set_xy(0, _titulo_y + 28)
     pdf.cell(0, 7, "FYC Calzado", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Fondo crema
     pdf.set_fill_color(*CREMA)
-    pdf.rect(0, 92, 210, 175, "F")
+    pdf.rect(0, 103, 210, 175, "F")
 
     # Ficha técnica en tarjeta
     pdf.set_fill_color(*BLANCO)
     pdf.set_draw_color(*GRIS_CLARO)
     pdf.set_line_width(0.3)
-    pdf.rect(25, 100, 160, 72, "FD")
+    pdf.rect(25, 110, 160, 75, "FD")
 
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(*CAFE)
-    pdf.set_xy(25, 106)
+    pdf.set_xy(25, 116)
     pdf.cell(160, 6, "INFORMACIÓN DEL DOCUMENTO", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_draw_color(*GRIS_CLARO)
     pdf.set_line_width(0.2)
-    pdf.line(35, 114, 185, 114)
+    pdf.line(35, 124, 185, 124)
 
     ficha = [
         ("Version",       "1.0"),
@@ -273,7 +287,7 @@ def build():
         ("Plataforma",    "Streamlit Cloud"),
         ("URL de acceso", APP_URL),
     ]
-    pdf.set_xy(35, 117)
+    pdf.set_xy(35, 127)
     for label, val in ficha:
         pdf.set_font("Helvetica", "B", 8.5)
         pdf.set_text_color(*GRIS_OSCURO)
