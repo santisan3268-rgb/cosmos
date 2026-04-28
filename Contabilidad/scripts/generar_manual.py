@@ -278,7 +278,7 @@ def build():
 
     pdf.set_draw_color(*GRIS_CLARO)
     pdf.set_line_width(0.2)
-    pdf.line(35, 124, 185, 124)
+    pdf.line(35, 124, 183, 124)
 
     ficha = [
         ("Version",       "1.0"),
@@ -297,8 +297,8 @@ def build():
         pdf.cell(42, 6.5, label + ":", border="B")
         pdf.set_font("Helvetica", "", 8.5)
         pdf.set_text_color(*GRIS_MEDIO)
-        # Limitar ancho para evitar desbordamiento (columna valor = 160-42=118mm)
-        pdf.multi_cell(118, 6.5, val, border="B", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        # ancho valor = 183 - 35 - 42 = 106mm para no salir del rect
+        pdf.multi_cell(106, 6.5, val, border="B", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Nota confidencialidad (posición dinámica tras la tabla)
     _nota_y = pdf.get_y() + 4
