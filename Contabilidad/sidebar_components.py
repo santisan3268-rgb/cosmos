@@ -178,44 +178,58 @@ def archivos_subidos_section() -> tuple[int, int] | None:
         ultima_fecha = hist.iloc[0]["fecha"] if total > 0 else "-"
         st.caption(f"Registros guardados: **{total}** · Último: {ultima_fecha}")
 
-        # Mini-tabla visual
-        vista = hist[["periodo", "archivo", "fecha"]].rename(
-            columns={"periodo": "Período", "archivo": "Archivo", "fecha": "Subido"}
-        )
-        st.dataframe(vista, use_container_width=True, hide_index=True, height=min(220, 36 + 35 * total))
-
-        # Botones de apertura rápida por fila
+        # Período activo actual
         actual = st.session_state.get("_selected_db_period")
         active_tuple = (
             (int(actual["anio"]), int(actual["mes"]))
             if isinstance(actual, dict) else None
         )
 
-        for _, row in hist.iterrows():
-            anio_row = int(row["anio"])
-            mes_row = int(row["mes"])
-            periodo_label = str(row["periodo"])
-            is_active = active_tuple == (anio_row, mes_row)
+        # Tabla interactiva: columna "Abrir" como checkbox integrado
+        hist["_abrir"] = hist.apply(
+            lambda r: active_tuple == (int(r["anio"]), int(r["mes"])), axis=1
+        )
+        vista_edit = hist[["_abrir", "periodo", "archivo", "fecha"]].rename(
+            columns={"_abrir": "Abrir", "periodo": "Período", "archivo": "Archivo", "fecha": "Subido"}
+        ).reset_index(drop=True)
 
-            c_lbl, c_btn = st.columns([3, 1])
-            c_lbl.caption(f"{'✓ ' if is_active else ''}{periodo_label}")
-            with c_btn:
-                if st.button(
+        resultado = st.data_editor(
+            vista_edit,
+            column_config={
+                "Abrir": st.column_config.CheckboxColumn(
                     "↗",
-                    key=f"btn_open_db_{anio_row}_{mes_row}",
-                    use_container_width=True,
-                    type="primary" if is_active else "secondary",
-                    help=f"Abrir {periodo_label}",
-                ):
-                    if is_active:
-                        st.session_state.pop("_selected_db_period", None)
-                    else:
-                        st.session_state["_selected_db_period"] = {
-                            "anio": anio_row,
-                            "mes": mes_row,
-                        }
-                        st.session_state.pop("_pending_save", None)
-                    st.rerun()
+                    help="Marca para abrir este período desde la BD",
+                    default=False,
+                    width="small",
+                ),
+                "Período": st.column_config.TextColumn(disabled=True, width="medium"),
+                "Archivo": st.column_config.TextColumn(disabled=True, width="medium"),
+                "Subido": st.column_config.TextColumn(disabled=True, width="medium"),
+            },
+            hide_index=True,
+            use_container_width=True,
+            height=min(220, 38 + 35 * total),
+            key="data_editor_bd_hist",
+        )
+
+        # Detectar cambio en los checkboxes
+        for idx, edit_row in resultado.iterrows():
+            orig_row = hist.iloc[idx]
+            key = (int(orig_row["anio"]), int(orig_row["mes"]))
+            was_active = active_tuple == key
+            is_checked = bool(edit_row["Abrir"])
+            if is_checked and not was_active:
+                # Usuario marcó una nueva fila → abrir ese período
+                st.session_state["_selected_db_period"] = {
+                    "anio": key[0],
+                    "mes": key[1],
+                }
+                st.session_state.pop("_pending_save", None)
+                st.rerun()
+            elif not is_checked and was_active:
+                # Usuario desmarcó el período activo → cerrar
+                st.session_state.pop("_selected_db_period", None)
+                st.rerun()
 
     selected = st.session_state.get("_selected_db_period")
     if isinstance(selected, dict) and "anio" in selected and "mes" in selected:
