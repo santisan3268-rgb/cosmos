@@ -269,7 +269,7 @@ def build():
     pdf.set_fill_color(*BLANCO)
     pdf.set_draw_color(*GRIS_CLARO)
     pdf.set_line_width(0.3)
-    pdf.rect(25, 110, 160, 75, "FD")
+    pdf.rect(25, 110, 160, 85, "FD")
 
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(*CAFE)
@@ -285,6 +285,7 @@ def build():
         ("Fecha",         FECHA),
         ("Clasificacion", "Uso interno - Confidencial"),
         ("Audiencia",     "Equipo administrativo FYC Calzado"),
+        ("Ubicacion",     "Rionegro, Antioquia"),
         ("Plataforma",    "Streamlit Cloud"),
         ("URL de acceso", APP_URL),
     ]
@@ -296,10 +297,12 @@ def build():
         pdf.cell(42, 6.5, label + ":", border="B")
         pdf.set_font("Helvetica", "", 8.5)
         pdf.set_text_color(*GRIS_MEDIO)
-        pdf.cell(0, 6.5, val, border="B", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        # Limitar ancho para evitar desbordamiento (columna valor = 160-42=118mm)
+        pdf.multi_cell(118, 6.5, val, border="B", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    # Nota confidencialidad
-    pdf.set_xy(25, 178)
+    # Nota confidencialidad (posición dinámica tras la tabla)
+    _nota_y = pdf.get_y() + 4
+    pdf.set_xy(25, _nota_y)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(*CAFE)
     pdf.multi_cell(160, 5,
@@ -774,7 +777,6 @@ def build():
         "Para solicitar soporte técnico, reportar errores o gestionar accesos, "
         "contacta directamente al administrador del sistema de FYC Calzado."
     )
-    pdf.bullet("Ubicación: Rionegro, Antioquia.")
     pdf.info_box(
         "🔒  Recuerda: la contraseña de acceso se entrega directamente y de forma "
         "personal por el administrador del sistema. Nunca se envía por medios digitales.",
