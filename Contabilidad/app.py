@@ -21,7 +21,14 @@ import os
 import time
 import ipaddress
 
-from conta_core.db_utils import MESES_ES, guardar_registro
+from conta_core.db_utils import (
+    HORAS_EXTRAS,
+    HORAS_GUARDADAS,
+    MESES_ES,
+    guardar_registro,
+    obtener_registro_global,
+    obtener_registros_tienda,
+)
 from conta_core.parser_utils import HORA_COLS, parse_excel_file, prepare_loaded_dataframe
 from sidebar_components import (
     archivos_subidos_section,
@@ -44,6 +51,81 @@ from views import (
 )
 from views.kpis import render_kpis_and_detail
 from views.navbar import inject_no_translate, inject_styles, render_navbar
+
+
+def _render_db_period_view(anio: int, mes: int) -> None:
+    """Renderiza un resumen del período guardado en BD sin requerir Excel cargado."""
+    registro = obtener_registro_global(anio, mes)
+    if registro is None:
+        st.error("No se encontró ese período en la base de datos.")
+        st.session_state.pop("_selected_db_period", None)
+        st.stop()
+
+    tiendas = obtener_registros_tienda(anio, mes)
+    periodo_label = f"{MESES_ES.get(mes, mes)} {anio}"
+
+    st.title("FYC Calzado – Reporte de Labor")
+    st.caption(f"Vista cargada desde base de datos · {periodo_label}")
+
+    total_horas = float(registro.get("TOTAL", 0) or 0)
+    total_extras = sum(float(registro.get(c, 0) or 0) for c in HORAS_EXTRAS)
+    fecha_carga = str(registro.get("fecha_carga", "-") or "-")
+    archivo_origen = str(registro.get("archivo_origen", "") or "(Sin nombre)")
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Período", periodo_label)
+    k2.metric("Total horas", f"{total_horas:,.2f}")
+    k3.metric("Horas extras", f"{total_extras:,.2f}")
+    k4.metric("Tiendas", f"{len(tiendas):,}")
+
+    st.caption(f"Archivo origen: **{archivo_origen}**")
+    st.caption(f"Última carga: **{fecha_carga}**")
+
+    filas_conceptos = []
+    for concepto in HORAS_GUARDADAS:
+        valor = float(registro.get(concepto, 0) or 0)
+        if abs(valor) > 0:
+            filas_conceptos.append(
+                {
+                    "Concepto": concepto,
+                    "Descripción": HORA_COLS.get(concepto, ""),
+                    "Horas": round(valor, 2),
+                }
+            )
+
+    if filas_conceptos:
+        df_conceptos = pd.DataFrame(filas_conceptos).sort_values("Horas", ascending=False)
+        st.markdown("#### Resumen por concepto")
+        st.dataframe(df_conceptos, use_container_width=True, hide_index=True)
+    else:
+        st.info("Este período no tiene horas registradas por concepto.")
+
+    st.markdown("#### Resumen por tienda")
+    if tiendas.empty:
+        st.info("No hay detalle por tienda para este período.")
+    else:
+        cols_extra = [c for c in HORAS_EXTRAS if c in tiendas.columns]
+        tiendas_view = tiendas.copy()
+        if cols_extra:
+            tiendas_view["Horas extras"] = tiendas_view[cols_extra].sum(axis=1).round(2)
+        else:
+            tiendas_view["Horas extras"] = 0.0
+
+        columnas_mostrar = ["tienda", "Horas extras", "TOTAL"]
+        columnas_mostrar = [c for c in columnas_mostrar if c in tiendas_view.columns]
+        tiendas_view = tiendas_view[columnas_mostrar].rename(
+            columns={"tienda": "Tienda", "TOTAL": "Total horas"}
+        )
+        tiendas_view = tiendas_view.sort_values("Horas extras", ascending=False)
+        st.dataframe(tiendas_view, use_container_width=True, hide_index=True)
+
+    st.markdown("#### Comparaciones históricas")
+    tab_comparaciones.render()
+    st.info(
+        "Para ver detalle por día, semana y empleados necesitas cargar un archivo Excel. "
+        "La base de datos guarda totales mensuales y por tienda."
+    )
+    st.stop()
 
 
 def _get_secret_or_env(secret_key: str, env_key: str, default: str = "") -> str:
@@ -231,7 +313,7 @@ with st.sidebar:
     st.write("")
     uploaded_file = upload_section()
     historial_section(uploaded_file)
-    archivos_subidos_section()
+    selected_db_period = archivos_subidos_section()
     _render_session_controls(_client_ip, _ttl_hours)
     st.divider()
 
@@ -242,7 +324,12 @@ def _parse_excel(path_or_file) -> pd.DataFrame:
 
 
 if uploaded_file is None:
-    st.info("Sube un archivo Excel de Siesa Access desde el panel izquierdo para comenzar.")
+    if selected_db_period:
+        _render_db_period_view(int(selected_db_period[0]), int(selected_db_period[1]))
+    st.info(
+        "Sube un archivo Excel de Siesa Access desde el panel izquierdo para comenzar, "
+        "o abre un período en 'Archivos ya subidos (BD)'."
+    )
     st.stop()
 
 try:

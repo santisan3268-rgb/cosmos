@@ -150,19 +150,19 @@ def historial_section(uploaded_file) -> None:
             st.success("Registro preparado para guardar.")
 
 
-def archivos_subidos_section() -> None:
-    """Muestra en sidebar los registros históricos guardados en la BD."""
+def archivos_subidos_section() -> tuple[int, int] | None:
+    """Muestra registros guardados y permite seleccionar uno para cargar en la vista."""
     st.write("")
     with st.expander("Archivos ya subidos (BD)", icon=":material/folder_managed:"):
         try:
             hist = listar_meses_guardados()
         except Exception as exc:
             st.error(f"No se pudo leer la base de datos: {exc}")
-            return
+            return None
 
         if hist.empty:
             st.caption("Aún no hay registros guardados en la base de datos.")
-            return
+            return None
 
         hist = hist.copy()
         hist["periodo"] = hist["mes"].map(MESES_ES).fillna(hist["mes"].astype(str)) + " " + hist["anio"].astype(str)
@@ -179,6 +179,94 @@ def archivos_subidos_section() -> None:
         st.caption(f"Registros guardados: **{total}**")
         st.caption(f"Última carga: **{ultima_fecha}**")
 
+        st.markdown("##### Apertura rápida")
+        for _, row in hist.iterrows():
+            anio_row = int(row["anio"])
+            mes_row = int(row["mes"])
+            periodo_label = str(row["periodo"])
+            archivo_label = str(row["archivo"])
+            fecha_label = str(row["fecha"])
+
+            c_info, c_btn = st.columns([4, 1])
+            with c_info:
+                st.markdown(
+                    f"**{periodo_label}**  \n"
+                    f"{archivo_label}  \n"
+                    f"_{fecha_label}_"
+                )
+            with c_btn:
+                if st.button(
+                    "Abrir",
+                    key=f"btn_open_db_{anio_row}_{mes_row}",
+                    use_container_width=True,
+                    type="secondary",
+                ):
+                    st.session_state["_selected_db_period"] = {
+                        "anio": anio_row,
+                        "mes": mes_row,
+                    }
+                    st.session_state.pop("_pending_save", None)
+                    st.rerun()
+
+            st.divider()
+
+        opciones = [
+            (int(row["anio"]), int(row["mes"]))
+            for _, row in hist.iterrows()
+        ]
+        labels = {
+            (int(row["anio"]), int(row["mes"])): (
+                f"{row['periodo']} · {row['archivo']}"
+            )
+            for _, row in hist.iterrows()
+        }
+
+        actual = st.session_state.get("_selected_db_period")
+        if isinstance(actual, dict):
+            current_tuple = (int(actual.get("anio", 0)), int(actual.get("mes", 0)))
+        else:
+            current_tuple = None
+
+        default_idx = 0
+        if current_tuple in opciones:
+            default_idx = opciones.index(current_tuple)
+
+        periodo_sel = st.selectbox(
+            "Período guardado",
+            options=opciones,
+            index=default_idx,
+            format_func=lambda p: labels[p],
+            key="db_periodo_cargar_sel",
+            help="Selecciona un período guardado para abrir su resumen desde la base de datos.",
+        )
+
+        col_load, col_clear = st.columns(2)
+        with col_load:
+            if st.button(
+                "Abrir",
+                icon=":material/folder_open:",
+                use_container_width=True,
+                key="btn_cargar_periodo_bd",
+                type="primary",
+            ):
+                st.session_state["_selected_db_period"] = {
+                    "anio": int(periodo_sel[0]),
+                    "mes": int(periodo_sel[1]),
+                }
+                st.session_state.pop("_pending_save", None)
+                st.rerun()
+
+        with col_clear:
+            if st.button(
+                "Cerrar",
+                icon=":material/close:",
+                use_container_width=True,
+                key="btn_limpiar_periodo_bd",
+                type="secondary",
+            ):
+                st.session_state.pop("_selected_db_period", None)
+                st.rerun()
+
         vista = hist[["periodo", "archivo", "fecha"]].rename(
             columns={
                 "periodo": "Período",
@@ -187,6 +275,11 @@ def archivos_subidos_section() -> None:
             }
         )
         st.dataframe(vista, use_container_width=True, hide_index=True, height=220)
+
+    selected = st.session_state.get("_selected_db_period")
+    if isinstance(selected, dict) and "anio" in selected and "mes" in selected:
+        return int(selected["anio"]), int(selected["mes"])
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────
